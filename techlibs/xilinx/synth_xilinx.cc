@@ -87,6 +87,9 @@ struct SynthXilinxPass : public ScriptPass
 		log("    -nodsp\n");
 		log("        do not use DSP48E1s to implement multipliers and associated logic\n");
 		log("\n");
+		log("    -dsp-multonly\n");
+		log("        use DSP48E1s for multiply only, do not pack registers or adders\n");
+		log("\n");
 		log("    -noiopad\n");
 		log("        disable I/O buffer insertion (useful for hierarchical or \n");
 		log("        out-of-context flows)\n");
@@ -127,7 +130,7 @@ struct SynthXilinxPass : public ScriptPass
 	}
 
 	std::string top_opt, edif_file, blif_file, family;
-	bool flatten, retime, vpr, ise, noiopad, noclkbuf, nobram, nolutram, nosrl, nocarry, nowidelut, nodsp, uram;
+	bool flatten, retime, vpr, ise, noiopad, noclkbuf, nobram, nolutram, nosrl, nocarry, nowidelut, nodsp, dsp_multonly, uram;
 	bool abc9, dff_mode;
 	bool flatten_before_abc;
 	int widemux;
@@ -151,6 +154,7 @@ struct SynthXilinxPass : public ScriptPass
 		nocarry = false;
 		nowidelut = false;
 		nodsp = false;
+		dsp_multonly = false;
 		uram = false;
 		abc9 = false;
 		dff_mode = false;
@@ -256,6 +260,10 @@ struct SynthXilinxPass : public ScriptPass
 			}
 			if (args[argidx] == "-nodsp") {
 				nodsp = true;
+				continue;
+			}
+			if (args[argidx] == "-dsp-multonly") {
+				dsp_multonly = true;
 				continue;
 			}
 			if (args[argidx] == "-uram") {
@@ -398,8 +406,8 @@ struct SynthXilinxPass : public ScriptPass
 				run("wreduce");
 				run("select -clear");
 				if (help_mode)
-					run("xilinx_dsp -family <family>");
-				else
+					run("xilinx_dsp -family <family>", "(skip if '-dsp-multonly')");
+				else if (!dsp_multonly)
 					run("xilinx_dsp -family " + family);
 				run("chtype -set $mul t:$__soft_mul");
 			}
